@@ -39,18 +39,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
-          # Root cause: @vscode/vsce 3.x requires Node.js 20+, so using the
-          # extension runtime floor (Node 16) would make packaging fail in CI.
-          # Solution: Build and package with Node 20 on the runner while keeping
-          # the extension's runtime compatibility unchanged.
-          node-version: 20
+          # Keep CI on the same pinned Node.js line as local development so the
+          # packaged VSIX is built and released with the exact supported runtime.
+          node-version-file: .node-version
           cache: npm
 
       - name: Resolve release metadata
@@ -130,14 +128,10 @@ jobs:
           create_flags=(
             "--title" "$RELEASE_NAME"
             "--target" "$GITHUB_SHA"
-            "--draft=${{ inputs.draft }}"
-            "--prerelease=${{ inputs.prerelease }}"
           )
           edit_flags=(
             "--title" "$RELEASE_NAME"
             "--target" "$GITHUB_SHA"
-            "--draft=${{ inputs.draft }}"
-            "--prerelease=${{ inputs.prerelease }}"
           )
 
           if [[ -n "$RELEASE_NOTES" ]]; then
@@ -145,6 +139,23 @@ jobs:
             edit_flags+=("--notes" "$RELEASE_NOTES")
           else
             create_flags+=("--generate-notes")
+          fi
+
+          # Root cause: workflow_dispatch inputs are undefined on push events, so
+          # expanding them into "--draft=" or "--prerelease=" makes gh reject the
+          # command before the release is created.
+          # Solution: Only append these boolean flags when the workflow is
+          # manually triggered and the caller explicitly enables them.
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if [[ "${{ inputs.draft }}" == "true" ]]; then
+              create_flags+=("--draft")
+              edit_flags+=("--draft")
+            fi
+
+            if [[ "${{ inputs.prerelease }}" == "true" ]]; then
+              create_flags+=("--prerelease")
+              edit_flags+=("--prerelease")
+            fi
           fi
 
           # Reuse the release when it already exists so repeated manual runs can

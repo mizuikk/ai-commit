@@ -40,7 +40,7 @@ Use OpenAI / Azure OpenAI / DeepSeek / Gemini API to review Git changes, generat
 2. Install it directly from the [Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=Sitoi.ai-commit).
 
 > **Note**\
-> Make sure your node version >= 16
+> Make sure your Node.js version is 24.14.1 or later
 
 ## 🤯 Usage
 

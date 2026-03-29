@@ -40,7 +40,7 @@
 2. 从 [Visual Studio Code Marketplace](https://marketplace.visualstudio.com/items?itemName=Sitoi.ai-commit) 直接安装。
 
 > **Note**\
-> 请确保 Node.js 版本 >= 16
+> 请确保 Node.js 版本为 24.14.1 或更高
 
 ## 🤯 使用
 
