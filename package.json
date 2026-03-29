@@ -2,7 +2,7 @@
   "name": "ai-commit",
   "displayName": "AI Commit",
   "description": "Use Azure/OpenAI API to review Git changes, generate conventional commit messages that meet the conventions, simplify the commit process, and keep the commit conventions consistent.",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "engines": {
     "node": ">=24",
     "vscode": "^1.77.0"
@@ -174,10 +174,9 @@
     "compile": "webpack",
     "compile-tests": "tsc -p . --outDir out",
     "lint": "eslint src --ext ts",
-    "package:prepare": "node -e \"require('fs').mkdirSync('artifacts', { recursive: true })\"",
-    "package": "npm run package:prepare && vsce package --no-dependencies --out artifacts/ai-commit.vsix",
+    "package": "node ./scripts/vsix.js package",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
-    "publish": "npm run package && vsce publish --packagePath artifacts/ai-commit.vsix",
+    "publish": "npm run package && node ./scripts/vsix.js publish",
     "test": "node ./out/test/runTest.js",
     "vscode:prepublish": "npm run build",
     "watch": "webpack --watch",

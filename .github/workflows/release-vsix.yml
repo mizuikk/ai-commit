@@ -95,6 +95,7 @@ jobs:
           fi
 
           echo "current_version=$current_version" >> "$GITHUB_OUTPUT"
+          echo "package_path=artifacts/ai-commit-${current_version}.vsix" >> "$GITHUB_OUTPUT"
           echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
           echo "release_name=$release_name" >> "$GITHUB_OUTPUT"
           echo "should_release=$should_release" >> "$GITHUB_OUTPUT"
@@ -120,7 +121,7 @@ jobs:
           RELEASE_TAG: ${{ steps.release.outputs.release_tag }}
           RELEASE_NAME: ${{ steps.release.outputs.release_name }}
           RELEASE_NOTES: ${{ steps.release.outputs.release_notes }}
-          VSIX_PATH: artifacts/ai-commit.vsix
+          VSIX_PATH: ${{ steps.release.outputs.package_path }}
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
