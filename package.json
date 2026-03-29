@@ -2,7 +2,7 @@
   "name": "ai-commit",
   "displayName": "AI Commit",
   "description": "Use Azure/OpenAI API to review Git changes, generate conventional commit messages that meet the conventions, simplify the commit process, and keep the commit conventions consistent.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "engines": {
     "node": ">=16",
     "vscode": "^1.77.0"
@@ -42,13 +42,18 @@
       {
         "command": "ai-commit.showAvailableModels",
         "title": "Show Available OpenAI Models"
+      },
+      {
+        "command": "ai-commit.setCommitLanguageForCurrentRepository",
+        "title": "Set Commit Language for Current Repository"
       }
     ],
     "configuration": {
       "properties": {
         "ai-commit.AI_COMMIT_LANGUAGE": {
           "default": "English",
-          "description": "Commit message language",
+          "markdownDescription": "Default commit message language. This setting supports repository-level overrides through workspace or folder settings.",
+          "scope": "resource",
           "enum": [
             "Simplified Chinese",
             "Traditional Chinese",
@@ -169,9 +174,10 @@
     "compile": "webpack",
     "compile-tests": "tsc -p . --outDir out",
     "lint": "eslint src --ext ts",
-    "package": "vsce package --no-dependencies",
+    "package:prepare": "node -e \"require('fs').mkdirSync('artifacts', { recursive: true })\"",
+    "package": "npm run package:prepare && vsce package --no-dependencies --out artifacts/ai-commit.vsix",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
-    "publish": "vsce publish --no-dependencies",
+    "publish": "npm run package && vsce publish --packagePath artifacts/ai-commit.vsix",
     "test": "node ./out/test/runTest.js",
     "vscode:prepublish": "npm run build",
     "watch": "webpack --watch",
@@ -185,6 +191,7 @@
     "@types/vscode": "^1.77.0",
     "@typescript-eslint/eslint-plugin": "^5.56.0",
     "@typescript-eslint/parser": "^5.56.0",
+    "@vscode/vsce": "^3.7.1",
     "@vscode/test-electron": "^2.3.0",
     "eslint": "^8.36.0",
     "glob": "^8.1.0",

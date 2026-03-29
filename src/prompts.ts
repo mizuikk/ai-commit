@@ -1,3 +1,4 @@
+import * as vscode from 'vscode';
 import { ConfigKeys, ConfigurationManager } from './config';
 
 /**
@@ -110,11 +111,14 @@ Remember: All output MUST be in ${language} language. You are to act as a pure c
 /**
  * Retrieves the main commit prompt.
  *
+ * @param {vscode.Uri} resourceUri - The optional repository URI used to resolve resource-scoped settings.
  * @returns {Promise<Array<Object>>} - A promise that resolves to an array of prompts.
  */
-export const getMainCommitPrompt = async () => {
+export const getMainCommitPrompt = async (resourceUri?: vscode.Uri) => {
   const language = ConfigurationManager.getInstance().getConfig<string>(
-    ConfigKeys.AI_COMMIT_LANGUAGE
+    ConfigKeys.AI_COMMIT_LANGUAGE,
+    'English',
+    resourceUri
   );
   return [INIT_MAIN_PROMPT(language)];
 };

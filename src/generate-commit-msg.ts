@@ -13,13 +13,15 @@ import { GeminiAPI } from './gemini-utils';
  *
  * @param {string} diff - The diff string representing changes to be committed.
  * @param {string} additionalContext - Additional context for the changes.
+ * @param {vscode.Uri} resourceUri - The optional repository URI used to resolve resource-scoped settings.
  * @returns {Promise<Array<{ role: string, content: string }>>} - A promise that resolves to an array of messages for the chat completion.
  */
 const generateCommitMessageChatCompletionPrompt = async (
   diff: string,
-  additionalContext?: string
+  additionalContext?: string,
+  resourceUri?: vscode.Uri
 ) => {
-  const INIT_MESSAGES_PROMPT = await getMainCommitPrompt();
+  const INIT_MESSAGES_PROMPT = await getMainCommitPrompt(resourceUri);
   const chatContextAsCompletionRequest = [...INIT_MESSAGES_PROMPT];
 
   if (additionalContext) {
@@ -100,7 +102,8 @@ export async function generateCommitMsg(arg) {
       });
       const messages = await generateCommitMessageChatCompletionPrompt(
         diff,
-        additionalContext
+        additionalContext,
+        repo.rootUri
       );
 
       progress.report({

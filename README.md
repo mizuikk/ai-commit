@@ -29,6 +29,7 @@ Use OpenAI / Azure OpenAI / DeepSeek / Gemini API to review Git changes, generat
 
 - 🤯 Support generating commit messages based on git diffs using ChatGPT / Azure API / DeepSeek / Gemini API.
 - 🗺️ Support multi-language commit messages.
+- 📁 Support repository-level language overrides for multi-project workflows.
 - 😜 Support adding Gitmoji.
 - 🛠️ Support custom system prompt.
 - 📝 Support Conventional Commits specification.
@@ -50,6 +51,8 @@ Use OpenAI / Azure OpenAI / DeepSeek / Gemini API to review Git changes, generat
 5. Next to the commit message input box in the "Source Control" panel, click the "AI Commit" icon button. After clicking, the extension will generate a commit message (considering any additional context if provided) and populate it in the input box.
 6. Review the generated commit message, and if you are satisfied, proceed to commit your changes.
 
+If you work across repositories that use different commit languages, run the `Set Commit Language for Current Repository` command from the Command Palette. This stores a workspace or folder override for the active repository without changing your global default.
+
 > **Note**\
 > If the code exceeds the maximum token length, consider adding it to the staging area in batches.
 
@@ -70,7 +73,7 @@ In the VSCode settings, locate the "ai-commit" configuration options and configu
 | GEMINI_API_KEY     | string |         None         |   Yes    |     Required when `AI Provider` is set to `Gemini`. [Gemini API key](https://makersuite.google.com/app/apikey)     |
 | GEMINI_MODEL       | string | gemini-2.0-flash-001 |   Yes    |                       Gemini MODEL. Currently, model selection is limited to configuration.                        |
 | GEMINI_TEMPERATURE | number |         0.7          |    No    | Controls randomness in the output. Range: 0-2 for Gemini. Lower values: more focused, Higher values: more creative |
-| AI_COMMIT_LANGUAGE | string |          en          |   Yes    |                                               Supports 19 languages                                                |
+| AI_COMMIT_LANGUAGE | string |          en          |   Yes    |                 Supports 19 languages. Can be overridden per repository via workspace or folder settings.          |
 | SYSTEM_PROMPT      | string |         None         |    No    |                                                Custom system prompt                                                |
 
 ## ⌨️ Local Development

@@ -58,12 +58,62 @@ export class ConfigurationManager {
     return this.instance;
   }
 
-  getConfig<T>(key: string, defaultValue?: T): T {
-    if (!this.configCache.has(key)) {
-      const config = vscode.workspace.getConfiguration('ai-commit');
-      this.configCache.set(key, config.get<T>(key, defaultValue));
+  /**
+   * Builds a cache key for a configuration lookup.
+   *
+   * @param {string} key - The configuration key being resolved.
+   * @param {vscode.Uri} resourceUri - The optional resource URI used for scoped lookups.
+   * @returns {string} A unique cache key for the configuration lookup.
+   */
+  private getCacheKey(key: string, resourceUri?: vscode.Uri): string {
+    return resourceUri ? `${key}:${resourceUri.toString()}` : key;
+  }
+
+  /**
+   * Retrieves a configuration value and caches the resolved value.
+   *
+   * @param {string} key - The configuration key to read.
+   * @param {T} defaultValue - The fallback value returned when the setting is undefined.
+   * @param {vscode.Uri} resourceUri - The optional resource URI for resource-scoped settings.
+   * @returns {T} The resolved configuration value.
+   * @throws {Error} Propagates unexpected VS Code configuration API failures.
+   * @sideEffects Reads VS Code configuration state and updates the in-memory cache.
+   */
+  getConfig<T>(key: string, defaultValue?: T, resourceUri?: vscode.Uri): T {
+    const cacheKey = this.getCacheKey(key, resourceUri);
+
+    if (!this.configCache.has(cacheKey)) {
+      const config = resourceUri
+        ? vscode.workspace.getConfiguration('ai-commit', resourceUri)
+        : vscode.workspace.getConfiguration('ai-commit');
+      this.configCache.set(cacheKey, config.get<T>(key, defaultValue));
     }
-    return this.configCache.get(key);
+    return this.configCache.get(cacheKey);
+  }
+
+  /**
+   * Updates a configuration value and clears the cached configuration snapshot.
+   *
+   * @param {string} key - The configuration key to update.
+   * @param {T} value - The new value to store. Pass `undefined` to clear an override.
+   * @param {vscode.ConfigurationTarget} target - The VS Code configuration target to update.
+   * @param {vscode.Uri} resourceUri - The optional resource URI for resource-scoped settings.
+   * @returns {Promise<void>} Resolves when VS Code persists the setting update.
+   * @throws {Error} Propagates VS Code configuration update failures.
+   * @sideEffects Writes VS Code configuration state and clears the in-memory cache.
+   */
+  async updateConfig<T>(
+    key: string,
+    value: T | undefined,
+    target: vscode.ConfigurationTarget,
+    resourceUri?: vscode.Uri
+  ): Promise<void> {
+    const config = resourceUri
+      ? vscode.workspace.getConfiguration('ai-commit', resourceUri)
+      : vscode.workspace.getConfiguration('ai-commit');
+
+    await config.update(key, value, target);
+    this.configCache.clear();
   }
 
   dispose() {

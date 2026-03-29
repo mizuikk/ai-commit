@@ -29,6 +29,7 @@
 
 - 🤯 支持使用 OpenAI / Azure OpenAI / DeepSeek / Gemini API 根据 git diffs 自动生成提交信息
 - 🗺️ 支持多语言提交信息
+- 📁 支持按仓库覆盖提交语言，适合多项目切换
 - 😜 支持添加 Gitmoji
 - 🛠️ 支持自定义系统提示词
 - 📝 支持 Conventional Commits 规范
@@ -50,6 +51,8 @@
 5. 在 `Source Control` 面板的提交消息输入框旁边，单击 `AI Commit` 图标按钮。点击后，扩展将生成 Commit 信息（如果提供了额外上下文，将会考虑在内）并填充到输入框中。
 6. 审核生成的 Commit 信息，如果满意，请提交更改。
 
+如果你需要在多个仓库之间切换不同的提交语言，可以通过命令面板运行 `Set Commit Language for Current Repository`。该命令会只为当前仓库写入工作区或文件夹级覆盖，不会改动全局默认语言。
+
 > **Note**\
 > 如果超过最大 token 长度请分批将代码添加到暂存区。
 
@@ -70,7 +73,7 @@
 | GEMINI_API_KEY     | string |         None         | Yes  | 将`AI Provider`设置为`Gemini`时需要。[Gemini API key](https://makersuite.google.com/app/apikey) |
 | GEMINI_MODEL       | string | gemini-2.0-flash-001 | Yes  |                               模型选择仅限于配 Gemini 模型。置。                                |
 | GEMINI_TEMPERATURE | number |         0.7          |  No  |          `Gemini` 控制输出的随机性。范围：0-2。较低的值：更加集中，较高的值：更有创造           |
-| AI_COMMIT_LANGUAGE | string |          en          |  是  |                                         支持 19 种语言                                          |
+| AI_COMMIT_LANGUAGE | string |          en          |  是  |                           支持 19 种语言，并支持通过工作区或文件夹设置按仓库覆盖                            |
 | SYSTEM_PROMPT      | string |         None         |  否  |                                        自定义系统提示词                                         |
 
 ## ⌨️ 本地开发

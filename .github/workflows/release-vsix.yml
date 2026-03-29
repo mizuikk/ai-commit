@@ -1,0 +1,167 @@
+name: Publish VSIX to GitHub Releases
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - package.json
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to create or update, for example v0.1.1
+        required: true
+        type: string
+      release_name:
+        description: Optional GitHub release title. Defaults to the tag name.
+        required: false
+        type: string
+      notes:
+        description: Optional release notes. Leave empty to keep existing notes or auto-generate for new releases.
+        required: false
+        type: string
+      draft:
+        description: Create or update the release as a draft
+        required: false
+        default: false
+        type: boolean
+      prerelease:
+        description: Mark the release as a pre-release
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  publish-vsix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          # Root cause: @vscode/vsce 3.x requires Node.js 20+, so using the
+          # extension runtime floor (Node 16) would make packaging fail in CI.
+          # Solution: Build and package with Node 20 on the runner while keeping
+          # the extension's runtime compatibility unchanged.
+          node-version: 20
+          cache: npm
+
+      - name: Resolve release metadata
+        id: release
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          MANUAL_TAG: ${{ inputs.tag }}
+          MANUAL_RELEASE_NAME: ${{ inputs.release_name }}
+          MANUAL_RELEASE_NOTES: ${{ inputs.notes }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          current_version="$(node -p "require('./package.json').version")"
+          current_tag="v${current_version}"
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            release_tag="$MANUAL_TAG"
+            release_name="${MANUAL_RELEASE_NAME:-$MANUAL_TAG}"
+            release_notes="$MANUAL_RELEASE_NOTES"
+            should_release="true"
+          else
+            # Root cause: A push that touches package.json does not necessarily
+            # mean the extension version changed; config edits would otherwise
+            # create duplicate releases for the same version.
+            # Solution: Compare the current package.json version against the
+            # previous commit and only continue when the semver value changed.
+            release_tag="$current_tag"
+            release_name="$current_tag"
+            release_notes=""
+            should_release="true"
+
+            if [[ -n "$BEFORE_SHA" && "$BEFORE_SHA" != "0000000000000000000000000000000000000000" ]]; then
+              previous_version="$(
+                git show "${BEFORE_SHA}:package.json" 2>/dev/null | \
+                  node -e "let data=''; process.stdin.on('data', c => data += c); process.stdin.on('end', () => { process.stdout.write(JSON.parse(data).version || ''); });"
+              )"
+
+              if [[ "$previous_version" == "$current_version" ]]; then
+                should_release="false"
+              fi
+            fi
+          fi
+
+          echo "current_version=$current_version" >> "$GITHUB_OUTPUT"
+          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+          echo "release_name=$release_name" >> "$GITHUB_OUTPUT"
+          echo "should_release=$should_release" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "release_notes<<EOF"
+            echo "$release_notes"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Install dependencies
+        if: steps.release.outputs.should_release == 'true'
+        run: npm ci
+
+      - name: Build VSIX package
+        if: steps.release.outputs.should_release == 'true'
+        run: npm run package
+
+      - name: Create or update GitHub release asset
+        if: steps.release.outputs.should_release == 'true'
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.release_tag }}
+          RELEASE_NAME: ${{ steps.release.outputs.release_name }}
+          RELEASE_NOTES: ${{ steps.release.outputs.release_notes }}
+          VSIX_PATH: artifacts/ai-commit.vsix
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          create_flags=(
+            "--title" "$RELEASE_NAME"
+            "--target" "$GITHUB_SHA"
+            "--draft=${{ inputs.draft }}"
+            "--prerelease=${{ inputs.prerelease }}"
+          )
+          edit_flags=(
+            "--title" "$RELEASE_NAME"
+            "--target" "$GITHUB_SHA"
+            "--draft=${{ inputs.draft }}"
+            "--prerelease=${{ inputs.prerelease }}"
+          )
+
+          if [[ -n "$RELEASE_NOTES" ]]; then
+            create_flags+=("--notes" "$RELEASE_NOTES")
+            edit_flags+=("--notes" "$RELEASE_NOTES")
+          else
+            create_flags+=("--generate-notes")
+          fi
+
+          # Reuse the release when it already exists so repeated manual runs can
+          # refresh the packaged VSIX without forcing maintainers to delete and
+          # recreate the GitHub release by hand.
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release edit "$RELEASE_TAG" "${edit_flags[@]}"
+            gh release upload "$RELEASE_TAG" "$VSIX_PATH" --clobber
+          else
+            gh release create \
+              "$RELEASE_TAG" \
+              "$VSIX_PATH" \
+              "${create_flags[@]}"
+          fi
+
+      - name: Skip release when version is unchanged
+        if: steps.release.outputs.should_release != 'true'
+        run: |
+          echo "package.json changed, but the version stayed at ${{ steps.release.outputs.current_version }}."
+          echo "Skipping GitHub Release publishing."
